@@ -74,8 +74,9 @@ checkBrowsers(paths.appPath, isInteractive)
   .then(previousFileSizes => {
     // Remove all content but keep the directory so that
     // if you're in it, you don't end up in Trash
-    fs.emptyDirSync(paths.appBuild);
+    fs.emptyDirSync(paths.appReactAppFolder);
     // Merge with the public folder
+    deletePreCacheManifestFiles();
     copyPublicFolder();
     // Start the webpack build
     return build(previousFileSizes);
@@ -210,6 +211,14 @@ function build(previousFileSizes) {
         return reject(new Error(messages.warnings.join('\n\n')));
       }
 
+      console.log('Move index.html to app.blade.php');
+
+      fs.moveSync(
+        path.join(paths.appBuild, 'index.html'),
+        path.join(paths.laravelViews, 'app.blade.php'),
+        { overwrite: true }
+      );
+
       return resolve({
         stats,
         previousFileSizes,
@@ -217,6 +226,15 @@ function build(previousFileSizes) {
       });
     });
   });
+}
+
+function deletePreCacheManifestFiles() {
+  let files = fs.readdirSync(paths.appBuild);
+
+  let regex = /^precache-manifest/;
+  files
+    .filter(file => regex.test(file))
+    .forEach(file => fs.removeSync(`${paths.appBuild}/${file}`));
 }
 
 function copyPublicFolder() {
